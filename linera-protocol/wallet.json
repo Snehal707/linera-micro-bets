@@ -1,0 +1,181 @@
+{
+  "chains": {
+    "90274b145ca45c00b30b7634fe4b2be002987b67b7f55f43d9dc5b47839a8a64": {
+      "owner": "0xf9b1ce9e68cc6e6d81c91efef9ecf45dae5097907ee0380d6d4d33c007d906af",
+      "block_hash": "46e488d7a29ca894c32c3512aa623289fb4b0a5d6f6e1d4fc35c9ecbbde18f5a",
+      "next_block_height": 6,
+      "timestamp": 1768145689052753,
+      "pending_proposal": null,
+      "epoch": "0",
+      "follow_only": false
+    },
+    "ec19403074ae66635a08826a6df8bd3ef69d1a3f1da68a0b075c7de371efcaa8": {
+      "owner": null,
+      "block_hash": null,
+      "next_block_height": 0,
+      "timestamp": 1768134543956918,
+      "pending_proposal": null,
+      "epoch": "0",
+      "follow_only": false
+    }
+  },
+  "default": "90274b145ca45c00b30b7634fe4b2be002987b67b7f55f43d9dc5b47839a8a64",
+  "genesis_config": {
+    "committee": {
+      "validators": {
+        "039de809f0acdf99ae20fb308b1f9a15fe65a505c785d02b39a649839ce6bd43ad": {
+          "network_address": "grpc:localhost:13001",
+          "votes": 100,
+          "account_public_key": {
+            "Ed25519": "874c45879680551d1863022610d2613f198ee378b3b9193cc94a664aa9bcd519"
+          }
+        }
+      },
+      "total_votes": 100,
+      "quorum_threshold": 67,
+      "validity_threshold": 34,
+      "policy": {
+        "wasm_fuel_unit": "0.",
+        "evm_fuel_unit": "0.",
+        "read_operation": "0.",
+        "write_operation": "0.",
+        "byte_runtime": "0.",
+        "byte_read": "0.",
+        "byte_written": "0.",
+        "blob_read": "0.",
+        "blob_published": "0.",
+        "blob_byte_read": "0.",
+        "blob_byte_published": "0.",
+        "byte_stored": "0.",
+        "operation": "0.",
+        "operation_byte": "0.",
+        "message": "0.",
+        "message_byte": "0.",
+        "service_as_oracle_query": "0.",
+        "http_request": "0.",
+        "maximum_wasm_fuel_per_block": 18446744073709551615,
+        "maximum_evm_fuel_per_block": 18446744073709551615,
+        "maximum_service_oracle_execution_ms": 18446744073709551615,
+        "maximum_block_size": 18446744073709551615,
+        "maximum_bytecode_size": 18446744073709551615,
+        "maximum_blob_size": 18446744073709551615,
+        "maximum_published_blobs": 18446744073709551615,
+        "maximum_block_proposal_size": 18446744073709551615,
+        "maximum_bytes_read_per_block": 18446744073709551615,
+        "maximum_bytes_written_per_block": 18446744073709551615,
+        "maximum_oracle_response_bytes": 18446744073709551615,
+        "maximum_http_response_bytes": 18446744073709551615,
+        "http_request_timeout_ms": 18446744073709551615,
+        "http_request_allow_list": [
+          "localhost"
+        ]
+      }
+    },
+    "timestamp": 1768134543956918,
+    "chains": [
+      {
+        "origin": {
+          "Root": 0
+        },
+        "timestamp": 1768134543956918,
+        "config": {
+          "ownership": {
+            "super_owners": [],
+            "owners": {
+              "0x3e4674179fcc214a3e93bd1ee36a5101df127636ab56c3c29034d71dee49589d": 100
+            },
+            "first_leader": null,
+            "multi_leader_rounds": 2,
+            "open_multi_leader_rounds": false,
+            "timeout_config": {
+              "fast_round_duration": null,
+              "base_timeout": 10000000,
+              "timeout_increment": 1000000,
+              "fallback_duration": 18446744073709551615
+            }
+          },
+          "epoch": "0",
+          "min_active_epoch": "0",
+          "max_active_epoch": "0",
+          "balance": "1000000.",
+          "application_permissions": {
+            "execute_operations": null,
+            "mandatory_applications": [],
+            "manage_chain": [],
+            "call_service_as_oracle": null,
+            "make_http_requests": null
+          }
+        }
+      },
+      {
+        "origin": {
+          "Root": 1
+        },
+        "timestamp": 1768134543956918,
+        "config": {
+          "ownership": {
+            "super_owners": [],
+            "owners": {
+              "0x93749092b579b1d63edf012e066f40419619c2814bcf7de5e39a4a34218e53fb": 100
+            },
+            "first_leader": null,
+            "multi_leader_rounds": 2,
+            "open_multi_leader_rounds": false,
+            "timeout_config": {
+              "fast_round_duration": null,
+              "base_timeout": 10000000,
+              "timeout_increment": 1000000,
+              "fallback_duration": 18446744073709551615
+            }
+          },
+          "epoch": "0",
+          "min_active_epoch": "0",
+          "max_active_epoch": "0",
+          "balance": "1000000.",
+          "application_permissions": {
+            "execute_operations": null,
+            "mandatory_applications": [],
+            "manage_chain": [],
+            "call_service_as_oracle": null,
+            "make_http_requests": null
+          }
+        }
+      },
+      {
+        "origin": {
+          "Root": 2
+        },
+        "timestamp": 1768134543956918,
+        "config": {
+          "ownership": {
+            "super_owners": [],
+            "owners": {
+              "0x61a480c93a308b83fa38a74dd07ca0528f78af347be579afe361050a2847cc65": 100
+            },
+            "first_leader": null,
+            "multi_leader_rounds": 2,
+            "open_multi_leader_rounds": false,
+            "timeout_config": {
+              "fast_round_duration": null,
+              "base_timeout": 10000000,
+              "timeout_increment": 1000000,
+              "fallback_duration": 18446744073709551615
+            }
+          },
+          "epoch": "0",
+          "min_active_epoch": "0",
+          "max_active_epoch": "0",
+          "balance": "1000000.",
+          "application_permissions": {
+            "execute_operations": null,
+            "mandatory_applications": [],
+            "manage_chain": [],
+            "call_service_as_oracle": null,
+            "make_http_requests": null
+          }
+        }
+      }
+    ],
+    "network_name": "linera-2026-01-11T12:29:03"
+  }
+}
