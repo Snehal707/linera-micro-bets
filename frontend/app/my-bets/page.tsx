@@ -2,15 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useUserBets, useServiceHealth } from '../lib/hooks';
+import { getConfig, formatAmount } from '../lib/linera-client';
 
-interface UserBet {
+interface UserBetDisplay {
   id: string;
   marketId: string;
   marketQuestion: string;
-  marketCategory: string;
+  marketCategory?: string;
   side: 'yes' | 'no';
   amount: number;
   timestamp: number;
+  isOnChain: boolean;
 }
 
 const categoryIcons: Record<string, string> = {
@@ -27,8 +30,7 @@ const categoryIcons: Record<string, string> = {
 };
 
 function formatDate(timestamp: number): string {
-  const date = new Date(timestamp);
-  return date.toLocaleDateString('en-US', {
+  return new Date(timestamp).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
@@ -37,44 +39,96 @@ function formatDate(timestamp: number): string {
 }
 
 export default function MyBetsPage() {
-  const [bets, setBets] = useState<UserBet[]>([]);
+  const config = getConfig();
+  const { data: isHealthy } = useServiceHealth();
+  const { data: lineraUserBets, isLoading: isLoadingBets } = useUserBets();
+  
+  const [bets, setBets] = useState<UserBetDisplay[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const stored = localStorage.getItem('stormcast_user_bets');
-    if (stored) {
-      setBets(JSON.parse(stored));
-    }
-    setLoading(false);
-  }, []);
+  const isLiveMode = isHealthy && config.isConfigured;
 
-  const totalBets = bets.length;
-  const totalAmount = bets.reduce((sum, bet) => sum + bet.amount, 0);
-  const yesBets = bets.filter(b => b.side === 'yes').length;
-  const noBets = bets.filter(b => b.side === 'no').length;
+  // Load bets
+  useEffect(() => {
+    const loadBets = async () => {
+      setLoading(true);
+      
+      let allBets: UserBetDisplay[] = [];
+
+      // We use localStorage as primary source since it has full bet info
+      // On-chain user bets from Linera only have minimal info (betId, side, amount)
+      
+      // Load all bets from localStorage (both demo and on-chain bets are stored here)
+      const stored = localStorage.getItem('stormcast_user_bets');
+      if (stored) {
+        const storedBets: UserBetDisplay[] = JSON.parse(stored).map((bet: {
+          id: string;
+          marketId: string;
+          marketQuestion?: string;
+          marketCategory?: string;
+          side: 'yes' | 'no' | boolean;
+          amount: number;
+          timestamp: number;
+          isOnChain?: boolean;
+        }) => ({
+          ...bet,
+          marketQuestion: bet.marketQuestion || 'Unknown Market',
+          side: typeof bet.side === 'boolean' ? (bet.side ? 'yes' : 'no') : bet.side,
+          isOnChain: bet.isOnChain || false,
+        }));
+        allBets = [...allBets, ...storedBets];
+      }
+
+      // Sort by timestamp (newest first)
+      allBets.sort((a, b) => b.timestamp - a.timestamp);
+
+      setBets(allBets);
+      setLoading(false);
+    };
+
+    if (!isLoadingBets) {
+      loadBets();
+    }
+  }, [isLiveMode, lineraUserBets, isLoadingBets]);
+
+  const clearDemoBets = () => {
+    if (confirm('Clear all demo bets? This cannot be undone.')) {
+      localStorage.removeItem('stormcast_user_bets');
+      setBets(bets.filter(b => b.isOnChain));
+    }
+  };
+
+  const onChainCount = bets.filter(b => b.isOnChain).length;
+  const demoCount = bets.filter(b => !b.isOnChain).length;
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold text-slate-50 mb-2">My Bets</h1>
-      <p className="text-slate-400 mb-8">Track your betting history and performance</p>
+    <div className="max-w-3xl mx-auto">
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-50">My Bets</h1>
+          <p className="text-slate-400 mt-1">Track your prediction market positions</p>
+        </div>
+        <Link
+          href="/"
+          className="px-4 py-2 bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700 transition"
+        >
+          ← Back to Markets
+        </Link>
+      </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
-          <p className="text-slate-400 text-sm">Total Bets</p>
-          <p className="text-2xl font-bold text-slate-50">{totalBets}</p>
+          <p className="text-slate-400 text-sm mb-1">Total Bets</p>
+          <p className="text-2xl font-bold text-cyan-400">{bets.length}</p>
         </div>
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
-          <p className="text-slate-400 text-sm">Total Wagered</p>
-          <p className="text-2xl font-bold text-cyan-400">{totalAmount.toLocaleString()}</p>
+        <div className="bg-slate-900 border border-green-500/30 rounded-xl p-4 text-center">
+          <p className="text-slate-400 text-sm mb-1">On-Chain</p>
+          <p className="text-2xl font-bold text-green-400">{onChainCount}</p>
         </div>
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
-          <p className="text-slate-400 text-sm">YES Bets</p>
-          <p className="text-2xl font-bold text-green-400">{yesBets}</p>
-        </div>
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
-          <p className="text-slate-400 text-sm">NO Bets</p>
-          <p className="text-2xl font-bold text-red-400">{noBets}</p>
+        <div className="bg-slate-900 border border-yellow-500/30 rounded-xl p-4 text-center">
+          <p className="text-slate-400 text-sm mb-1">Demo</p>
+          <p className="text-2xl font-bold text-yellow-400">{demoCount}</p>
         </div>
       </div>
 
@@ -84,78 +138,87 @@ export default function MyBetsPage() {
           <p className="text-slate-400">Loading your bets...</p>
         </div>
       ) : bets.length === 0 ? (
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-12 text-center">
-          <div className="text-6xl mb-4">🎯</div>
-          <p className="text-slate-400 text-lg mb-2">No bets placed yet</p>
-          <p className="text-slate-500 text-sm mb-6">
-            Start betting on environmental events to see your history here.
-          </p>
+        <div className="text-center py-12 bg-slate-900 border border-slate-800 rounded-xl">
+          <p className="text-6xl mb-4">🎲</p>
+          <p className="text-slate-400 text-lg mb-4">No bets yet</p>
           <Link
             href="/"
-            className="inline-block px-6 py-3 bg-cyan-500 text-slate-950 rounded-lg hover:bg-cyan-400 transition font-semibold"
+            className="text-cyan-400 hover:text-cyan-300 transition"
           >
-            Browse Markets →
+            Browse markets and place your first bet →
           </Link>
         </div>
       ) : (
-        <div className="space-y-4">
-          {bets.map((bet) => (
-            <div
-              key={bet.id}
-              className="bg-slate-900 border border-slate-800 rounded-xl p-6 hover:border-slate-700 transition"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex items-start gap-4 flex-1">
-                  <span className="text-3xl">
-                    {categoryIcons[bet.marketCategory] || '🌡️'}
-                  </span>
-                  <div className="flex-1">
-                    <Link 
-                      href={`/bet/${bet.marketId}`}
-                      className="text-lg font-semibold text-slate-50 hover:text-cyan-400 transition"
-                    >
-                      {bet.marketQuestion}
-                    </Link>
-                    <div className="flex items-center gap-4 mt-2">
-                      <span className={`px-3 py-1 rounded-full text-sm font-bold ${
-                        bet.side === 'yes'
-                          ? 'bg-green-500/20 text-green-400'
-                          : 'bg-red-500/20 text-red-400'
-                      }`}>
-                        {bet.side.toUpperCase()}
-                      </span>
-                      <span className="text-slate-400 text-sm">
-                        {formatDate(bet.timestamp)}
-                      </span>
+        <>
+          {demoCount > 0 && (
+            <div className="flex justify-end mb-4">
+              <button
+                onClick={clearDemoBets}
+                className="text-sm text-red-400 hover:text-red-300 transition"
+              >
+                🗑️ Clear Demo Bets
+              </button>
+            </div>
+          )}
+          
+          <div className="space-y-4">
+            {bets.map((bet) => (
+              <div
+                key={bet.id}
+                className={`bg-slate-900 border rounded-xl p-6 ${
+                  bet.isOnChain ? 'border-green-500/30' : 'border-slate-800'
+                }`}
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-start gap-3 flex-1">
+                    <span className="text-2xl">
+                      {bet.marketCategory ? categoryIcons[bet.marketCategory] || '🌡️' : '🎲'}
+                    </span>
+                    <div className="flex-1">
+                      <p className="text-slate-50 font-medium">
+                        {(bet.marketQuestion || 'Unknown Market').replace(/^\[\w+\]\s*/, '')}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className={`text-xs px-2 py-0.5 rounded ${
+                          bet.isOnChain 
+                            ? 'bg-green-500/20 text-green-400'
+                            : 'bg-yellow-500/20 text-yellow-400'
+                        }`}>
+                          {bet.isOnChain ? '🔗 On-chain' : '📋 Demo'}
+                        </span>
+                        <span className="text-slate-500 text-xs">
+                          {formatDate(bet.timestamp)}
+                        </span>
+                      </div>
                     </div>
                   </div>
+                  <div className="text-right">
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      bet.side === 'yes'
+                        ? 'bg-green-500/20 text-green-400'
+                        : 'bg-red-500/20 text-red-400'
+                    }`}>
+                      {bet.side.toUpperCase()}
+                    </span>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-2xl font-bold text-slate-50">
-                    {bet.amount.toLocaleString()}
-                  </p>
-                  <p className="text-slate-500 text-sm">wagered</p>
+
+                <div className="flex justify-between items-center pt-4 border-t border-slate-800">
+                  <div>
+                    <span className="text-slate-500 text-sm">Amount</span>
+                    <p className="text-xl font-bold text-slate-50">{bet.amount.toLocaleString()}</p>
+                  </div>
+                  <Link
+                    href={`/bet/${bet.marketId}`}
+                    className="text-cyan-400 hover:text-cyan-300 transition text-sm"
+                  >
+                    View Market →
+                  </Link>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {bets.length > 0 && (
-        <div className="mt-8 text-center">
-          <button
-            onClick={() => {
-              if (confirm('Are you sure you want to clear your bet history?')) {
-                localStorage.removeItem('stormcast_user_bets');
-                setBets([]);
-              }
-            }}
-            className="text-slate-500 hover:text-red-400 text-sm transition"
-          >
-            Clear History
-          </button>
-        </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

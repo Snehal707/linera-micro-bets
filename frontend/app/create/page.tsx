@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useCreateBet, useServiceHealth } from '../lib/hooks';
+import { getConfig } from '../lib/linera-client';
 
 const categories = [
   { value: 'Rain', icon: '🌧️', label: 'Rain' },
@@ -18,43 +20,68 @@ const categories = [
 
 export default function CreateMarketPage() {
   const router = useRouter();
+  const config = getConfig();
+  const { data: isHealthy } = useServiceHealth();
+  const createBetMutation = useCreateBet();
+  
   const [question, setQuestion] = useState('');
   const [category, setCategory] = useState('Storm');
   const [durationHours, setDurationHours] = useState(24);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const isLiveMode = isHealthy && config.isConfigured;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!question.trim()) {
-      alert('Please enter a question');
+      setError('Please enter a question');
       return;
     }
 
     setIsSubmitting(true);
-    
-    // Create new market
-    const newMarket = {
-      id: `custom_${Date.now()}`,
-      question: question.trim(),
-      category,
-      creator: '0xYour...Wallet',
-      yesPool: 0,
-      noPool: 0,
-      status: 'Active',
-      endTime: Date.now() + (durationHours * 3600000),
-      createdAt: Date.now(),
-    };
+    setError(null);
 
-    // Save to localStorage
-    const stored = localStorage.getItem('stormcast_markets');
-    const markets = stored ? JSON.parse(stored) : [];
-    markets.unshift(newMarket);
-    localStorage.setItem('stormcast_markets', JSON.stringify(markets));
+    // Include category in question for better organization
+    const fullQuestion = `[${category}] ${question.trim()}`;
+    const durationSeconds = durationHours * 3600;
 
-    setTimeout(() => {
-      router.push('/');
-    }, 500);
+    if (isLiveMode) {
+      // Use real Linera integration
+      try {
+        await createBetMutation.mutateAsync({
+          question: fullQuestion,
+          durationSeconds,
+        });
+        router.push('/');
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to create market');
+        setIsSubmitting(false);
+      }
+    } else {
+      // Demo mode - save to localStorage
+      const newMarket = {
+        id: `demo_${Date.now()}`,
+        question: fullQuestion,
+        category,
+        creator: '0xYour...Wallet',
+        yesPool: 0,
+        noPool: 0,
+        status: 'Active',
+        endTime: Date.now() + (durationHours * 3600000),
+        createdAt: Date.now(),
+      };
+
+      const stored = localStorage.getItem('stormcast_markets');
+      const markets = stored ? JSON.parse(stored) : [];
+      markets.unshift(newMarket);
+      localStorage.setItem('stormcast_markets', JSON.stringify(markets));
+
+      setTimeout(() => {
+        router.push('/');
+      }, 500);
+    }
   };
 
   return (
@@ -62,7 +89,28 @@ export default function CreateMarketPage() {
       <h1 className="text-3xl font-bold text-slate-50 mb-2">Create Prediction Market</h1>
       <p className="text-slate-400 mb-8">Create a new environmental event market for others to bet on</p>
 
+      {/* Mode indicator */}
+      <div className={`rounded-lg p-3 mb-6 ${
+        isLiveMode 
+          ? 'bg-green-500/10 border border-green-500/30'
+          : 'bg-yellow-500/10 border border-yellow-500/30'
+      }`}>
+        <p className="text-sm">
+          {isLiveMode ? (
+            <span className="text-green-400">🔗 Creating on Linera Conway Testnet</span>
+          ) : (
+            <span className="text-yellow-400">📋 Demo Mode - Market will be saved locally</span>
+          )}
+        </p>
+      </div>
+
       <form onSubmit={handleSubmit} className="bg-slate-900 border border-slate-800 rounded-2xl p-8">
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-6">
+            <p className="text-red-400 text-sm">{error}</p>
+          </div>
+        )}
+
         {/* Category Selection */}
         <div className="mb-6">
           <label className="block text-sm font-medium text-slate-200 mb-3">
@@ -135,7 +183,7 @@ export default function CreateMarketPage() {
           {isSubmitting ? (
             <span className="flex items-center justify-center gap-2">
               <span className="animate-spin w-5 h-5 border-2 border-slate-950 border-t-transparent rounded-full"></span>
-              Creating Market...
+              {isLiveMode ? 'Submitting to Linera...' : 'Creating Market...'}
             </span>
           ) : (
             '🌪️ Create Market'

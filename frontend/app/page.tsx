@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useAllBets, useServiceHealth } from './lib/hooks';
+import { getConfig, formatAmount, MicroBet as LineraMarket } from './lib/linera-client';
 
 export interface Market {
   id: string;
@@ -37,53 +39,49 @@ const categoryIcons: Record<string, string> = {
   'Other': '🌡️',
 };
 
-// Default markets
-const defaultMarkets: Market[] = [
-  {
-    id: '1',
-    question: 'Will there be a Category 3+ Hurricane in Florida this month?',
-    category: 'Hurricane',
-    creator: '0x1234...5678',
-    yesPool: 2500,
-    noPool: 1800,
-    status: 'Active',
-    endTime: Date.now() + 86400000 * 7,
-    createdAt: Date.now() - 86400000,
-  },
-  {
-    id: '2',
-    question: 'Will Tokyo experience an earthquake above 5.0 magnitude this week?',
-    category: 'Earthquake',
-    creator: '0xabcd...efgh',
-    yesPool: 1200,
-    noPool: 1500,
-    status: 'Active',
-    endTime: Date.now() + 86400000 * 3,
-    createdAt: Date.now() - 43200000,
-  },
-  {
-    id: '3',
-    question: 'Will it rain more than 2 inches in NYC tomorrow?',
-    category: 'Rain',
-    creator: '0x9876...4321',
-    yesPool: 800,
-    noPool: 600,
-    status: 'Active',
-    endTime: Date.now() + 43200000,
-    createdAt: Date.now() - 21600000,
-  },
-  {
-    id: '4',
-    question: 'Will a tornado warning be issued in Oklahoma today?',
-    category: 'Tornado',
-    creator: '0xdef0...1234',
-    yesPool: 500,
-    noPool: 750,
-    status: 'Active',
-    endTime: Date.now() + 28800000,
-    createdAt: Date.now() - 14400000,
-  },
-];
+// Map Linera bet status to our status
+function mapStatus(status: string): 'Active' | 'Resolved' | 'Expired' {
+  switch (status) {
+    case 'Open':
+      return 'Active';
+    case 'Resolved':
+      return 'Resolved';
+    case 'Closed':
+      return 'Expired';
+    default:
+      return 'Active';
+  }
+}
+
+// Extract category from question (simple heuristic)
+function extractCategory(question: string): string {
+  const lowerQ = question.toLowerCase();
+  if (lowerQ.includes('hurricane')) return 'Hurricane';
+  if (lowerQ.includes('tornado')) return 'Tornado';
+  if (lowerQ.includes('earthquake')) return 'Earthquake';
+  if (lowerQ.includes('flood')) return 'Flood';
+  if (lowerQ.includes('rain')) return 'Rain';
+  if (lowerQ.includes('storm')) return 'Storm';
+  if (lowerQ.includes('snow') || lowerQ.includes('blizzard')) return 'Snow';
+  if (lowerQ.includes('fire') || lowerQ.includes('wildfire')) return 'Wildfire';
+  if (lowerQ.includes('drought') || lowerQ.includes('heat')) return 'Drought';
+  return 'Other';
+}
+
+// Convert Linera market to frontend Market type
+function convertToMarket(bet: LineraMarket): Market {
+  return {
+    id: bet.id,
+    question: bet.question,
+    category: extractCategory(bet.question),
+    creator: bet.creator.slice(0, 8) + '...' + bet.creator.slice(-4),
+    yesPool: formatAmount(bet.yesPool),
+    noPool: formatAmount(bet.noPool),
+    status: mapStatus(bet.status),
+    endTime: parseInt(bet.expiresAt) / 1000, // Convert microseconds to ms
+    createdAt: parseInt(bet.createdAt) / 1000,
+  };
+}
 
 function formatTimeLeft(endTime: number): string {
   const diff = endTime - Date.now();
@@ -97,21 +95,63 @@ function formatTimeLeft(endTime: number): string {
 }
 
 export default function HomePage() {
-  const [markets, setMarkets] = useState<Market[]>([]);
-  const [loading, setLoading] = useState(true);
+  const config = getConfig();
+  const { data: lineraMarkets, isLoading: isLoadingBets, error: betsError } = useAllBets();
+  const { data: isHealthy, isLoading: isCheckingHealth } = useServiceHealth();
   const [filter, setFilter] = useState<string>('All');
+  const [useDemoMode, setUseDemoMode] = useState(false);
 
+  // Demo markets for when Linera is not connected
+  const demoMarkets: Market[] = [
+    {
+      id: 'demo-1',
+      question: 'Will there be a Category 3+ Hurricane in Florida this month?',
+      category: 'Hurricane',
+      creator: '0x1234...5678',
+      yesPool: 2500,
+      noPool: 1800,
+      status: 'Active',
+      endTime: Date.now() + 86400000 * 7,
+      createdAt: Date.now() - 86400000,
+    },
+    {
+      id: 'demo-2',
+      question: 'Will Tokyo experience an earthquake above 5.0 magnitude this week?',
+      category: 'Earthquake',
+      creator: '0xabcd...efgh',
+      yesPool: 1200,
+      noPool: 1500,
+      status: 'Active',
+      endTime: Date.now() + 86400000 * 3,
+      createdAt: Date.now() - 43200000,
+    },
+    {
+      id: 'demo-3',
+      question: 'Will it rain more than 2 inches in NYC tomorrow?',
+      category: 'Rain',
+      creator: '0x9876...4321',
+      yesPool: 800,
+      noPool: 600,
+      status: 'Active',
+      endTime: Date.now() + 43200000,
+      createdAt: Date.now() - 21600000,
+    },
+  ];
+
+  // Decide which markets to show
+  // Fall back to demo if: user chose demo mode, service not healthy, has error, or no app configured
+  const markets: Market[] = useDemoMode || !isHealthy || betsError || !config.isConfigured
+    ? demoMarkets
+    : (lineraMarkets?.map(convertToMarket) || []);
+
+  const isLoading = isCheckingHealth || (!useDemoMode && isLoadingBets);
+
+  // Auto-switch to demo mode if service is not available
   useEffect(() => {
-    // Load markets from localStorage
-    const stored = localStorage.getItem('stormcast_markets');
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      setMarkets([...defaultMarkets, ...parsed]);
-    } else {
-      setMarkets(defaultMarkets);
+    if (!isCheckingHealth && !isHealthy && !config.isConfigured) {
+      setUseDemoMode(true);
     }
-    setLoading(false);
-  }, []);
+  }, [isHealthy, isCheckingHealth, config.isConfigured]);
 
   const filteredMarkets = filter === 'All' 
     ? markets 
@@ -136,13 +176,50 @@ export default function HomePage() {
         </Link>
       </div>
 
-      <div className="bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border border-cyan-500/30 rounded-xl p-4 mb-6">
-        <p className="text-slate-300 text-sm">
-          🔗 Connected to <span className="text-cyan-400 font-mono">Linera Conway Testnet</span>
-        </p>
-        <p className="text-slate-500 text-xs mt-1">
-          Contract: {process.env.NEXT_PUBLIC_MICRO_BET_APP_ID?.slice(0, 16)}...
-        </p>
+      {/* Connection Status */}
+      <div className={`border rounded-xl p-4 mb-6 ${
+        isHealthy && !useDemoMode && config.isConfigured && !betsError
+          ? 'bg-gradient-to-r from-green-500/10 to-cyan-500/10 border-green-500/30'
+          : isHealthy && !config.isConfigured
+          ? 'bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border-blue-500/30'
+          : 'bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border-yellow-500/30'
+      }`}>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-slate-300 text-sm">
+              {useDemoMode ? (
+                <>⚠️ Running in <span className="text-yellow-400 font-mono">Demo Mode</span> (localStorage)</>
+              ) : isHealthy && config.isConfigured && !betsError ? (
+                <>🔗 Connected to <span className="text-cyan-400 font-mono">Linera Conway Testnet</span></>
+              ) : isHealthy && !config.isConfigured ? (
+                <>✅ Linera Service <span className="text-cyan-400 font-mono">Running</span> - No app deployed</>
+              ) : (
+                <>⚠️ Running in <span className="text-yellow-400 font-mono">Demo Mode</span> (localStorage)</>
+              )}
+            </p>
+            {isHealthy && !config.isConfigured && !useDemoMode && (
+              <p className="text-blue-400 text-xs mt-1">
+                Deploy micro-bet contract to enable live mode
+              </p>
+            )}
+            {config.appId && !useDemoMode && config.isConfigured && (
+              <p className="text-slate-500 text-xs mt-1">
+                App ID: {config.appId.slice(0, 16)}...
+              </p>
+            )}
+            {betsError && !useDemoMode && config.isConfigured && (
+              <p className="text-red-400 text-xs mt-1">
+                Error: {betsError.message}
+              </p>
+            )}
+          </div>
+          <button
+            onClick={() => setUseDemoMode(!useDemoMode)}
+            className="px-3 py-1 text-xs rounded-full bg-slate-800 text-slate-300 hover:bg-slate-700 transition"
+          >
+            {useDemoMode ? '🔌 Try Live' : '📋 Demo Mode'}
+          </button>
+        </div>
       </div>
 
       {/* Category Filter */}
@@ -162,10 +239,10 @@ export default function HomePage() {
         ))}
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <div className="text-center py-12">
           <div className="animate-spin w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-slate-400">Loading markets...</p>
+          <p className="text-slate-400">Loading markets from Linera...</p>
         </div>
       ) : filteredMarkets.length === 0 ? (
         <div className="text-center py-12 bg-slate-900 border border-slate-800 rounded-xl">

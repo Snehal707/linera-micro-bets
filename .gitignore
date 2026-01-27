@@ -31,6 +31,10 @@ kubernetes/linera-validator/working/*
 node_modules
 **/dist/
 
+# Next.js
+.next/
+out/
+
 # Web client and signer are supposed to be used
 # as a library, so we don't want to
 # include their lock files.
