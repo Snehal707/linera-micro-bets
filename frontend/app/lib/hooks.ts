@@ -15,39 +15,48 @@ import {
   UserBet,
 } from './linera-client';
 
+// Helper to check if we can connect to Linera (not on remote deployment)
+function canConnectToLinera(): boolean {
+  if (typeof window === 'undefined') return false;
+  const hostname = window.location.hostname;
+  // Only allow Linera connections on localhost
+  return hostname === 'localhost' || hostname === '127.0.0.1';
+}
+
 // ============ QUERY HOOKS ============
 
 // Hook to fetch all bets
 export function useAllBets() {
   const config = getConfig();
+  const canConnect = canConnectToLinera();
   return useQuery<MicroBet[], Error>({
     queryKey: ['bets'],
     queryFn: getAllBets,
     refetchInterval: 5000, // Refetch every 5 seconds
-    retry: 3,
-    enabled: config.isConfigured, // Only fetch if app is configured
+    retry: 1,
+    enabled: config.isConfigured && canConnect, // Only fetch if on localhost
   });
 }
 
 // Hook to fetch a specific bet
 export function useBet(betId: string) {
   const config = getConfig();
+  const canConnect = canConnectToLinera();
   return useQuery<MicroBet | null, Error>({
     queryKey: ['bet', betId],
     queryFn: () => getBetById(betId),
-    enabled: !!betId && config.isConfigured,
+    enabled: !!betId && config.isConfigured && canConnect,
     refetchInterval: 3000,
+    retry: 1,
   });
 }
 
-// Hook to fetch user bets
+// Hook to fetch user bets - always disabled since we use localStorage
 export function useUserBets() {
-  const config = getConfig();
   return useQuery<UserBet[], Error>({
     queryKey: ['userBets'],
     queryFn: getUserBets,
-    refetchInterval: 5000,
-    enabled: config.isConfigured,
+    enabled: false, // We don't use this - localStorage is primary source
   });
 }
 

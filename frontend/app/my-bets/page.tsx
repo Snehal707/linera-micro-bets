@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useUserBets, useServiceHealth } from '../lib/hooks';
-import { getConfig, formatAmount } from '../lib/linera-client';
 
 interface UserBetDisplay {
   id: string;
@@ -39,44 +37,37 @@ function formatDate(timestamp: number): string {
 }
 
 export default function MyBetsPage() {
-  const config = getConfig();
-  const { data: isHealthy } = useServiceHealth();
-  const { data: lineraUserBets, isLoading: isLoadingBets } = useUserBets();
-  
   const [bets, setBets] = useState<UserBetDisplay[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const isLiveMode = isHealthy && config.isConfigured;
-
-  // Load bets
+  // Load bets from localStorage (works both on Vercel and locally)
   useEffect(() => {
-    const loadBets = async () => {
-      setLoading(true);
-      
+    const loadBets = () => {
       let allBets: UserBetDisplay[] = [];
 
-      // We use localStorage as primary source since it has full bet info
-      // On-chain user bets from Linera only have minimal info (betId, side, amount)
-      
       // Load all bets from localStorage (both demo and on-chain bets are stored here)
       const stored = localStorage.getItem('stormcast_user_bets');
       if (stored) {
-        const storedBets: UserBetDisplay[] = JSON.parse(stored).map((bet: {
-          id: string;
-          marketId: string;
-          marketQuestion?: string;
-          marketCategory?: string;
-          side: 'yes' | 'no' | boolean;
-          amount: number;
-          timestamp: number;
-          isOnChain?: boolean;
-        }) => ({
-          ...bet,
-          marketQuestion: bet.marketQuestion || 'Unknown Market',
-          side: typeof bet.side === 'boolean' ? (bet.side ? 'yes' : 'no') : bet.side,
-          isOnChain: bet.isOnChain || false,
-        }));
-        allBets = [...allBets, ...storedBets];
+        try {
+          const storedBets: UserBetDisplay[] = JSON.parse(stored).map((bet: {
+            id: string;
+            marketId: string;
+            marketQuestion?: string;
+            marketCategory?: string;
+            side: 'yes' | 'no' | boolean;
+            amount: number;
+            timestamp: number;
+            isOnChain?: boolean;
+          }) => ({
+            ...bet,
+            marketQuestion: bet.marketQuestion || 'Unknown Market',
+            side: typeof bet.side === 'boolean' ? (bet.side ? 'yes' : 'no') : bet.side,
+            isOnChain: bet.isOnChain || false,
+          }));
+          allBets = [...allBets, ...storedBets];
+        } catch (e) {
+          console.error('Failed to parse stored bets:', e);
+        }
       }
 
       // Sort by timestamp (newest first)
@@ -86,10 +77,10 @@ export default function MyBetsPage() {
       setLoading(false);
     };
 
-    if (!isLoadingBets) {
-      loadBets();
-    }
-  }, [isLiveMode, lineraUserBets, isLoadingBets]);
+    // Small delay to ensure we're on client side
+    const timer = setTimeout(loadBets, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   const clearDemoBets = () => {
     if (confirm('Clear all demo bets? This cannot be undone.')) {
