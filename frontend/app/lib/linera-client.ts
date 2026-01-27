@@ -211,12 +211,26 @@ export async function resolveBet(betId: string, outcome: boolean): Promise<void>
 
 // ============ HELPERS ============
 
-// Check if the Linera service is available
+// Check if the Linera service is available (with timeout)
 export async function checkServiceHealth(): Promise<boolean> {
+  // Don't even try if we're clearly on a remote deployment (not localhost)
+  if (typeof window !== 'undefined' && 
+      !window.location.hostname.includes('localhost') && 
+      !window.location.hostname.includes('127.0.0.1') &&
+      LINERA_SERVICE_URL.includes('localhost')) {
+    return false;
+  }
+  
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+    
     const response = await fetch(`${LINERA_SERVICE_URL}/`, {
       method: 'GET',
+      signal: controller.signal,
     });
+    
+    clearTimeout(timeoutId);
     return response.ok;
   } catch {
     return false;

@@ -56,8 +56,9 @@ export function useServiceHealth() {
   return useQuery<boolean, Error>({
     queryKey: ['serviceHealth'],
     queryFn: checkServiceHealth,
-    refetchInterval: 10000,
-    retry: 1,
+    refetchInterval: 30000, // Check every 30 seconds
+    retry: 0, // Don't retry - fail fast
+    staleTime: 10000, // Consider data stale after 10 seconds
   });
 }
 

@@ -21,7 +21,7 @@ const categories = [
 export default function CreateMarketPage() {
   const router = useRouter();
   const config = getConfig();
-  const { data: isHealthy } = useServiceHealth();
+  const { data: isHealthy, isLoading: isCheckingHealth } = useServiceHealth();
   const createBetMutation = useCreateBet();
   
   const [question, setQuestion] = useState('');
@@ -30,7 +30,8 @@ export default function CreateMarketPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const isLiveMode = isHealthy && config.isConfigured;
+  // Only use live mode if health check completed successfully AND we have an app configured
+  const isLiveMode = isHealthy === true && config.isConfigured;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -177,10 +178,15 @@ export default function CreateMarketPage() {
 
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || isCheckingHealth}
           className="w-full px-6 py-4 bg-cyan-500 text-slate-950 rounded-lg hover:bg-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed transition font-semibold text-lg"
         >
-          {isSubmitting ? (
+          {isCheckingHealth ? (
+            <span className="flex items-center justify-center gap-2">
+              <span className="animate-spin w-5 h-5 border-2 border-slate-950 border-t-transparent rounded-full"></span>
+              Checking connection...
+            </span>
+          ) : isSubmitting ? (
             <span className="flex items-center justify-center gap-2">
               <span className="animate-spin w-5 h-5 border-2 border-slate-950 border-t-transparent rounded-full"></span>
               {isLiveMode ? 'Submitting to Linera...' : 'Creating Market...'}
