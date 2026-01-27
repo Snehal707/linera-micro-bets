@@ -101,8 +101,33 @@ export default function HomePage() {
   const [filter, setFilter] = useState<string>('All');
   const [useDemoMode, setUseDemoMode] = useState(false);
 
-  // Demo markets for when Linera is not connected
-  const demoMarkets: Market[] = [
+  // Load user-created demo markets from localStorage
+  const [localMarkets, setLocalMarkets] = useState<Market[]>([]);
+  
+  useEffect(() => {
+    const loadLocalMarkets = () => {
+      try {
+        const stored = localStorage.getItem('stormcast_markets');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          setLocalMarkets(parsed.map((m: Market & { question?: string }) => ({
+            ...m,
+            category: m.category || extractCategory(m.question || ''),
+          })));
+        }
+      } catch (e) {
+        console.error('Failed to load local markets:', e);
+      }
+    };
+    loadLocalMarkets();
+    
+    // Re-check localStorage periodically (for newly created markets)
+    const interval = setInterval(loadLocalMarkets, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Default demo markets (shown when no user-created markets exist)
+  const defaultDemoMarkets: Market[] = [
     {
       id: 'demo-1',
       question: 'Will there be a Category 3+ Hurricane in Florida this month?',
@@ -137,6 +162,9 @@ export default function HomePage() {
       createdAt: Date.now() - 21600000,
     },
   ];
+
+  // Combine default demos with user-created local markets
+  const demoMarkets = [...localMarkets, ...defaultDemoMarkets];
 
   // Decide which markets to show
   // Fall back to demo if: user chose demo mode, service not healthy, has error, or no app configured
