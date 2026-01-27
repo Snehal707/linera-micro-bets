@@ -58,12 +58,21 @@ export default function MyBetsPage() {
             amount: number;
             timestamp: number;
             isOnChain?: boolean;
-          }) => ({
-            ...bet,
-            marketQuestion: bet.marketQuestion || 'Unknown Market',
-            side: typeof bet.side === 'boolean' ? (bet.side ? 'yes' : 'no') : bet.side,
-            isOnChain: bet.isOnChain || false,
-          }));
+          }) => {
+            // Detect on-chain bets by:
+            // 1. Explicit isOnChain flag
+            // 2. ID starts with 'onchain_'
+            // 3. marketId doesn't start with 'demo' (on-chain markets have IDs like 'bet_1')
+            const isOnChain = bet.isOnChain === true || 
+                              bet.id?.startsWith('onchain_') || 
+                              (!bet.marketId?.startsWith('demo') && bet.marketId?.startsWith('bet_'));
+            return {
+              ...bet,
+              marketQuestion: bet.marketQuestion || 'Unknown Market',
+              side: typeof bet.side === 'boolean' ? (bet.side ? 'yes' : 'no') : bet.side,
+              isOnChain,
+            };
+          });
           allBets = [...allBets, ...storedBets];
         } catch (e) {
           console.error('Failed to parse stored bets:', e);
