@@ -1,158 +1,182 @@
-# <img src="https://github.com/linera-io/linera-protocol/assets/1105398/fe08c941-93af-4114-bb83-bcc0eaec95f9" width="250" height="85" />
+# 🌪️ StormCast - Environmental Event Prediction Markets
 
-[![License](https://img.shields.io/github/license/linera-io/linera-protocol)](LICENSE)
-[![Build Status for Docker](https://github.com/linera-io/linera-protocol/actions/workflows/docker-compose.yml/badge.svg)](https://github.com/linera-io/linera-protocol/actions/workflows/docker-compose.yml)
-[![Build Status for Rust](https://github.com/linera-io/linera-protocol/actions/workflows/rust.yml/badge.svg)](https://github.com/linera-io/linera-protocol/actions/workflows/rust.yml)
-[![Build Status for Documentation](https://github.com/linera-io/linera-protocol/actions/workflows/documentation.yml/badge.svg)](https://github.com/linera-io/linera-protocol/actions/workflows/documentation.yml)
-[![Twitter](https://img.shields.io/twitter/follow/linera_io)](https://x.com/linera_io)
-[![Discord](https://img.shields.io/discord/984941796272521226)](https://discord.com/invite/linera)
+[![Live Demo](https://img.shields.io/badge/Demo-lineramicrobets.vercel.app-blue)](https://lineramicrobets.vercel.app)
+[![Built on Linera](https://img.shields.io/badge/Built%20on-Linera-orange)](https://linera.io)
+[![License](https://img.shields.io/badge/License-Apache%202.0-green)](LICENSE)
 
-<!-- [![Build Status for Kubernetes](https://github.com/linera-io/linera-protocol/actions/workflows/kubernetes.yml/badge.svg)](https://github.com/linera-io/linera-protocol/actions/workflows/kubernetes.yml) -->
+> **Decentralized prediction markets for weather and natural disaster events, built on Linera blockchain microchains.**
 
-[Linera](https://linera.io) is a decentralized blockchain infrastructure designed for highly scalable,
-secure, low-latency Web3 applications.
+StormCast enables users to create and bet on outcomes of real-world environmental events like hurricanes, earthquakes, tornadoes, floods, and more.
 
-## Documentation
+---
 
-Visit our [developer page](https://linera.dev) and read our
-[whitepaper](https://linera.io/whitepaper) to learn more about the Linera protocol.
+## 🎯 Live Demo
 
-## Repository Structure
+**🌐 [lineramicrobets.vercel.app](https://lineramicrobets.vercel.app)**
 
-The main crates and directories of this repository can be summarized as follows: (listed
-from low to high levels in the dependency graph)
+> **Note:** The Vercel deployment runs in Demo Mode (localStorage) since the Linera service requires a backend server. For full on-chain functionality, run locally with `linera service --port 8080`.
 
-* [`linera-base`](https://linera-io.github.io/linera-protocol/linera_base/index.html) Base
-  definitions, including cryptography.
+### 🚀 VPS Deployment (Coming Soon)
+We're planning to deploy the Linera service to a VPS, enabling real on-chain betting directly from the Vercel frontend for all users!
 
-* [`linera-version`](https://linera-io.github.io/linera-protocol/linera_version/index.html)
-  A library to manage version info in binaries and services.
+---
 
-* [`linera-views`](https://linera-io.github.io/linera-protocol/linera_views/index.html) A
-  library mapping complex data structures onto a key-value store. The corresponding
-  procedural macros are implemented in `linera-views-derive`.
+## ✨ Features
 
-* [`linera-execution`](https://linera-io.github.io/linera-protocol/linera_execution/index.html)
-  Persistent data and the corresponding logic for runtime and execution of Linera
-  applications.
+- **Create Markets** - Anyone can create a prediction market for an upcoming weather event with a specific question and deadline
+- **Place Bets** - Users bet YES or NO on outcomes, with funds pooled together
+- **Resolution & Payout** - When the event concludes, the market resolves and winners split the pool proportionally
+- **Sub-second Finality** - Linera's microchain architecture enables instant transaction confirmation
 
-* [`linera-chain`](https://linera-io.github.io/linera-protocol/linera_chain/index.html)
-  Persistent data and the corresponding logic for chains of blocks, certificates, and
-  cross-chain messaging.
+---
 
-* [`linera-storage`](https://linera-io.github.io/linera-protocol/linera_storage/index.html)
-  Defines the storage abstractions for the protocol on top of `linera-chain`.
+## 🏗️ Technical Implementation
 
-* [`linera-core`](https://linera-io.github.io/linera-protocol/linera_core/index.html) The
-  core Linera protocol, including client and server logic, node synchronization, etc.
+| Component | Technology |
+|-----------|------------|
+| **Smart Contract** | Rust with Linera SDK, MapView for bet storage, RegisterView for market state |
+| **Security** | Creator verification via `authenticated_signer()` ensures only authorized resolution |
+| **Token Integration** | Uses Linera's fungible token standard for seamless deposits and payouts |
+| **Frontend** | Next.js 14 with TypeScript, real-time market updates, responsive design |
 
-* [`linera-rpc`](https://linera-io.github.io/linera-protocol/linera_rpc/index.html)
-  Defines the data-type for RPC messages (currently all client &#x2194; proxy &#x2194;
-  chain &#x2194; chain interactions), and track the corresponding data schemas.
+---
 
-* [`linera-client`](https://linera-io.github.io/linera-protocol/linera_client/index.html)
-  Library for writing Linera clients.  Used for the command-line
-  client and the node service in `linera-service`, as well as the Web
-  client in [`linera-web`](https://github.com/linera-io/linera-web/).
+## 📁 Project Structure
 
-* [`linera-service`](https://linera-io.github.io/linera-protocol/linera_service/index.html)
-  Executable for clients (aka CLI wallets), proxy (aka validator frontend) and servers.
+```
+linera-micro-bets/
+├── frontend/                    # Next.js web application
+│   ├── app/                     # App router pages
+│   │   ├── page.tsx            # Markets listing
+│   │   ├── create/             # Create market page
+│   │   ├── bet/[id]/           # Market details & betting
+│   │   └── my-bets/            # User's betting history
+│   └── lib/                     # Linera client & hooks
+│
+├── examples/micro-bet/          # Linera smart contract
+│   └── src/
+│       ├── lib.rs              # Contract ABI & operations
+│       ├── state.rs            # Bet & market data structures
+│       ├── contract.rs         # Core betting logic
+│       └── service.rs          # GraphQL query endpoints
+│
+└── [linera-*]/                  # Linera protocol (dependency)
+```
 
-* [`linera-sdk`](https://linera-io.github.io/linera-protocol/linera_sdk/index.html) The
-  library to develop Linera applications written in Rust for the Wasm virtual machine. The
-  corresponding procedural macros are implemented in `linera-sdk-derive`.
+---
 
-* [`examples`](./examples) Examples of Linera applications written in Rust.
+## 🚀 Quick Start
 
-## Prerequisites
+### Demo Mode (Vercel)
+Simply visit: **[lineramicrobets.vercel.app](https://lineramicrobets.vercel.app)**
 
-See [`INSTALL.md`](./INSTALL.md) for software requirements to develop in this repo.
+### Local Development
 
-## Quickstart with the Linera CLI tool
+#### Prerequisites
+- [Rust](https://rustup.rs/) (for building Linera)
+- [Node.js 18+](https://nodejs.org/)
+- [WSL2](https://docs.microsoft.com/en-us/windows/wsl/install) (if on Windows)
 
-The following commands set up a local test network and run some transfers between the
-microchains owned by a single wallet.
-
+#### 1. Build Linera binaries
 ```bash
-# Make sure to compile the Linera binaries and add them in the $PATH.
-# cargo build -p linera-storage-service -p linera-service --bins
+cargo build -p linera-storage-service -p linera-service --bins
 export PATH="$PWD/target/debug:$PATH"
-
-# Import the optional helper function `linera_spawn`.
-source /dev/stdin <<<"$(linera net helper 2>/dev/null)"
-
-# Run a local test network with the default parameters and a number of microchains
-# owned by the default wallet. This also defines `LINERA_TMP_DIR`.
-linera_spawn \
-linera net up --with-faucet --faucet-port 8080
-
-# Remember the URL of the faucet.
-FAUCET_URL=http://localhost:8080
-
-# If you're using a testnet, start here and run this instead:
-#   LINERA_TMP_DIR=$(mktemp -d)
-#   FAUCET_URL=https://faucet.testnet-XXX.linera.net  # for some value XXX
 ```
 
-Enable logs for user applications:
-
+#### 2. Initialize wallet with Conway testnet
 ```bash
-export LINERA_APPLICATION_LOGS=true
+linera wallet init --faucet https://faucet.testnet-conway.linera.net
 ```
 
-Set the path of the future wallet:
-
+#### 3. Start Linera service
 ```bash
-export LINERA_WALLET="$LINERA_TMP_DIR/wallet.json"
-export LINERA_KEYSTORE="$LINERA_TMP_DIR/keystore.json"
-export LINERA_STORAGE="rocksdb:$LINERA_TMP_DIR/client.db"
-
-# Initialize a new user wallet.
-linera wallet init --faucet $FAUCET_URL
-
-# Request chains.
-INFO1=($(linera wallet request-chain --faucet $FAUCET_URL))
-INFO2=($(linera wallet request-chain --faucet $FAUCET_URL))
-CHAIN1="${INFO1[0]}"
-ACCOUNT1="${INFO1[1]}"
-CHAIN2="${INFO2[0]}"
-ACCOUNT2="${INFO2[1]}"
-
-# Show the different chains tracked by the wallet.
-linera wallet show
-
-# Query the chain balance of some of the chains.
-linera query-balance "$CHAIN1"
-linera query-balance "$CHAIN2"
-
-# Transfer 10 units then 5 back.
-linera transfer 10 --from "$CHAIN1" --to "$CHAIN2"
-linera transfer 5 --from "$CHAIN2" --to "$CHAIN1"
-
-# Query balances again.
-linera query-balance "$CHAIN1"
-linera query-balance "$CHAIN2"
-
-# Now let's fund the user balances.
-linera transfer 5 --from "$CHAIN1" --to "$CHAIN1:$ACCOUNT1"
-linera transfer 2 --from "$CHAIN1:$ACCOUNT1" --to "$CHAIN2:$ACCOUNT2"
-
-# Query user balances again.
-linera query-balance "$CHAIN1:$ACCOUNT1"
-linera query-balance "$CHAIN2:$ACCOUNT2"
+linera service --port 8080
 ```
 
-More complex examples may be found in our [developer manual](https://linera.dev) as well
-as the [example applications](./examples) in this repository.
+#### 4. Start frontend
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-## Contributing
+#### 5. Configure environment
+Create `frontend/.env.local`:
+```env
+NEXT_PUBLIC_LINERA_SERVICE_URL=http://localhost:8080
+NEXT_PUBLIC_CHAIN_ID=your_chain_id
+NEXT_PUBLIC_MICRO_BET_APP_ID=your_app_id
+```
 
-We welcome contributions from the community! If you'd like to contribute to the Linera protocol:
+Visit `http://localhost:3000` - you should see **"🔗 Linera: Connected"** indicating on-chain mode!
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+---
 
-For detailed guidelines, see our [contribution guide](./CONTRIBUTING.md).
+## 📖 How It Works
+
+### Creating a Market
+1. Navigate to "Create Market"
+2. Enter the event question (e.g., "Will Hurricane X make landfall in Florida?")
+3. Set the betting deadline
+4. Submit - market is created on-chain
+
+### Placing a Bet
+1. Browse active markets on the home page
+2. Click on a market to view details
+3. Choose YES or NO
+4. Enter your bet amount
+5. Confirm - funds are locked in the pool
+
+### Resolution
+1. After the event deadline, the market creator can resolve the outcome
+2. Winners receive proportional payouts from the losing pool
+3. All transactions are recorded on Linera microchains
+
+---
+
+## 🔒 Security Note
+
+> **Important:** Never commit `wallet.json`, `keystore.json`, or `client.db/` to version control. These files contain sensitive cryptographic keys.
+
+---
+
+## 🎓 What We Learned
+
+- Linera's microchain architecture enables sub-second transaction finality, perfect for time-sensitive betting
+- The View model requires careful async handling
+- Rust's type system caught many potential bugs at compile time
+- GraphQL provides a flexible API for frontend integration
+
+---
+
+## 🔮 Roadmap
+
+- [ ] **VPS Deployment** - Public Linera service for on-chain betting from Vercel
+- [ ] **Oracle Integration** - Automated weather data resolution
+- [ ] **Multi-chain Support** - Cross-region betting pools
+- [ ] **Mobile PWA** - Progressive web app for mobile users
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+---
+
+## 📄 License
+
+This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🙏 Acknowledgments
+
+- [Linera](https://linera.io) - For the revolutionary microchain infrastructure
+- [Linera Conway Testnet](https://faucet.testnet-conway.linera.net) - For providing testnet resources
+
+---
+
+<p align="center">
+  <b>Built with ❤️ for the Linera Builderthon</b>
+</p>

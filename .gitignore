@@ -47,3 +47,22 @@ CLAUDE.md
 
 # Git worktrees
 .worktrees/
+
+# ============================================
+# SECURITY - Never commit these files!
+# ============================================
+wallet.json
+keystore.json
+*.json.backup
+
+# Local database
+client.db/
+*.db
+
+# Personal/notes files (not part of project)
+YOUTUBE_*.md
+VERCEL_*.md
+FIX_*.md
+SUBMISSION_*.md
+*_FINAL.md
+*.draft.md
